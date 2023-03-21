@@ -3,14 +3,14 @@ import os
 
 import data.utils
 import model.utils as model_utils
-
-from test import predict_song
 from model.waveunet import Waveunet
+from test import predict_song
+
 
 def main(args):
     # MODEL
-    num_features = [args.features*i for i in range(1, args.levels+1)] if args.feature_growth == "add" else \
-                   [args.features*2**i for i in range(0, args.levels)]
+    num_features = [args.features * i for i in range(1, args.levels + 1)] if args.feature_growth == "add" else \
+        [args.features * 2 ** i for i in range(0, args.levels)]
     target_outputs = int(args.output_size * args.sr)
     model = Waveunet(args.channels, num_features, args.channels, args.instruments, kernel_size=args.kernel_size,
                      target_output_size=target_outputs, depth=args.depth, strides=args.strides,
@@ -29,7 +29,9 @@ def main(args):
 
     output_folder = os.path.dirname(args.input) if args.output is None else args.output
     for inst in preds.keys():
-        data.utils.write_wav(os.path.join(output_folder, os.path.basename(args.input) + "_" + inst + ".wav"), preds[inst], args.sr)
+        data.utils.write_wav(os.path.join(output_folder, os.path.basename(args.input) + "_" + inst + ".wav"),
+                             preds[inst], args.sr)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -66,10 +68,12 @@ if __name__ == '__main__':
     parser.add_argument('--feature_growth', type=str, default="double",
                         help="How the features in each layer should grow, either (add) the initial number of features each time, or multiply by 2 (double)")
 
-    parser.add_argument('--input', type=str, default=os.path.join("audio_examples", "Cristina Vane - So Easy", "mix.mp3"),
+    parser.add_argument('--input', type=str,
+                        default=os.path.join("audio_examples", "Cristina Vane - So Easy", "mix.mp3"),
                         help="Path to input mixture to be separated")
     parser.add_argument('--output', type=str, default=None, help="Output path (same folder as input path if not set)")
 
     args = parser.parse_args()
 
     main(args)
+    print("done")
