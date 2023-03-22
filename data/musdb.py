@@ -1,9 +1,12 @@
-import musdb
-import os
-import numpy as np
 import glob
+import os
+
+import musdb
+import numpy as np
 
 from data.utils import load, write_wav
+
+stems = ["mix", "bass", "drums", "other", "vocals"]
 
 
 def get_musdbhq(database_path):
@@ -23,7 +26,7 @@ def get_musdbhq(database_path):
         for track_folder in sorted(tracks):
             # Skip track if mixture is already written, assuming this track is done already
             example = dict()
-            for stem in ["mix", "bass", "drums", "other", "vocals"]:
+            for stem in stems:
                 filename = stem if stem != "mix" else "mixture"
                 audio_path = os.path.join(track_folder, filename + ".wav")
                 example[stem] = audio_path
@@ -47,6 +50,7 @@ def get_musdbhq(database_path):
         subsets.append(samples)
 
     return subsets
+
 
 def get_musdb(database_path):
     '''
@@ -72,8 +76,8 @@ def get_musdb(database_path):
                 print("WARNING: Skipping track " + mix_path + " since it exists already")
 
                 # Add paths and then skip
-                paths = {"mix" : mix_path, "accompaniment" : acc_path}
-                paths.update({key : track_path + "_" + key + ".wav" for key in ["bass", "drums", "other", "vocals"]})
+                paths = {"mix": mix_path, "accompaniment": acc_path}
+                paths.update({key: track_path + "_" + key + ".wav" for key in ["bass", "drums", "other", "vocals"]})
 
                 samples.append(paths)
 
@@ -102,7 +106,8 @@ def get_musdb(database_path):
             paths["mix"] = mix_path
 
             diff_signal = np.abs(mix_audio - acc_audio - stem_audio["vocals"])
-            print("Maximum absolute deviation from source additivity constraint: " + str(np.max(diff_signal)))# Check if acc+vocals=mix
+            print("Maximum absolute deviation from source additivity constraint: " + str(
+                np.max(diff_signal)))  # Check if acc+vocals=mix
             print("Mean absolute deviation from source additivity constraint:    " + str(np.mean(diff_signal)))
 
             samples.append(paths)
@@ -112,6 +117,7 @@ def get_musdb(database_path):
     print("DONE preparing dataset!")
     return subsets
 
+
 def get_musdb_folds(root_path, version="HQ"):
     if version == "HQ":
         dataset = get_musdbhq(root_path)
@@ -120,8 +126,9 @@ def get_musdb_folds(root_path, version="HQ"):
     train_val_list = dataset[0]
     test_list = dataset[1]
 
-    np.random.seed(1337) # Ensure that partitioning is always the same on each run
-    train_list = np.random.choice(train_val_list, 75, replace=False)
+    np.random.seed(1337)  # Ensure that partitioning is always the same on each run
+    size_train = 5
+    train_list = np.random.choice(train_val_list, size_train, replace=False)
     val_list = [elem for elem in train_val_list if elem not in train_list]
     # print("First training song: " + str(train_list[0])) # To debug whether partitioning is deterministic
-    return {"train" : train_list, "val" : val_list, "test" : test_list}
+    return {"train": train_list, "val": val_list, "test": test_list}
