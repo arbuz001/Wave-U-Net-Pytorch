@@ -11,7 +11,7 @@ stems_with_mix = ["mix", "Co-60", "Cs-137", "I-131", "Ru-106"]
 stems_no_mix = ["Co-60", "Cs-137", "I-131", "Ru-106"]
 
 # stems_no_mix_no_vocal = ["bass", "drums", "other"]
-stems_no_mix_no_vocal = ["Cs-137", "I-131", "Ru-106"]
+stems_no_mix_no_vocal = ["Co-60", "Cs-137", "I-131"]
 
 
 def get_musdbhq(database_path):
