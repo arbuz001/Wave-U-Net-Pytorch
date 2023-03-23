@@ -6,7 +6,12 @@ import numpy as np
 
 from data.utils import load, write_wav
 
-stems = ["mix", "bass", "drums", "other", "vocals"]
+stems_with_mix = ["mix", "Co-60", "Cs-137", "I-131", "Ru-106"]
+# stems_no_mix = ["bass", "drums", "other", "vocals"]
+stems_no_mix = ["Co-60", "Cs-137", "I-131", "Ru-106"]
+
+# stems_no_mix_no_vocal = ["bass", "drums", "other"]
+stems_no_mix_no_vocal = ["Cs-137", "I-131", "Ru-106"]
 
 
 def get_musdbhq(database_path):
@@ -26,7 +31,7 @@ def get_musdbhq(database_path):
         for track_folder in sorted(tracks):
             # Skip track if mixture is already written, assuming this track is done already
             example = dict()
-            for stem in stems:
+            for stem in stems_with_mix:
                 filename = stem if stem != "mix" else "mixture"
                 audio_path = os.path.join(track_folder, filename + ".wav")
                 example[stem] = audio_path
@@ -37,7 +42,7 @@ def get_musdbhq(database_path):
             if not os.path.exists(acc_path):
                 print("Writing accompaniment to " + track_folder)
                 stem_audio = []
-                for stem in ["bass", "drums", "other"]:
+                for stem in stems_no_mix_no_vocal:
                     audio, sr = load(example[stem], sr=None, mono=False)
                     stem_audio.append(audio)
                 acc_audio = np.clip(sum(stem_audio), -1.0, 1.0)
@@ -77,7 +82,7 @@ def get_musdb(database_path):
 
                 # Add paths and then skip
                 paths = {"mix": mix_path, "accompaniment": acc_path}
-                paths.update({key: track_path + "_" + key + ".wav" for key in ["bass", "drums", "other", "vocals"]})
+                paths.update({key: track_path + "_" + key + ".wav" for key in stems_no_mix})
 
                 samples.append(paths)
 
@@ -88,7 +93,7 @@ def get_musdb(database_path):
             # Go through each instrument
             paths = dict()
             stem_audio = dict()
-            for stem in ["bass", "drums", "other", "vocals"]:
+            for stem in stems_no_mix:
                 path = track_path + "_" + stem + ".wav"
                 audio = track.targets[stem].audio
                 write_wav(path, audio, rate)
@@ -128,7 +133,7 @@ def get_musdb_folds(root_path, version="HQ"):
 
     np.random.seed(1337)  # Ensure that partitioning is always the same on each run
     size_train = 5
-    train_list = np.random.choice(train_val_list, size_train, replace=False)
+    train_list = np.random.choice(train_val_list, size_train, replace=True)
     val_list = [elem for elem in train_val_list if elem not in train_list]
     # print("First training song: " + str(train_list[0])) # To debug whether partitioning is deterministic
     return {"train": train_list, "val": val_list, "test": test_list}
