@@ -6,7 +6,12 @@ import numpy as np
 
 from data.utils import load, write_wav
 
+
 stems_with_mix = ["mix", "Co-60", "Cs-137", "I-131", "Ru-106"]
+
+# key_vocals = "vocals"
+key_vocals = "Ru-106"
+
 # stems_no_mix = ["bass", "drums", "other", "vocals"]
 stems_no_mix = ["Co-60", "Cs-137", "I-131", "Ru-106"]
 
@@ -101,7 +106,8 @@ def get_musdb(database_path):
                 paths[stem] = path
 
             # Add other instruments to form accompaniment
-            acc_audio = np.clip(sum([stem_audio[key] for key in list(stem_audio.keys()) if key != "vocals"]), -1.0, 1.0)
+            acc_audio = np.clip(sum([stem_audio[key] for key in list(stem_audio.keys()) if key != key_vocals]), -1.0,
+                                1.0)
             write_wav(acc_path, acc_audio, rate)
             paths["accompaniment"] = acc_path
 
@@ -110,7 +116,7 @@ def get_musdb(database_path):
             write_wav(mix_path, mix_audio, rate)
             paths["mix"] = mix_path
 
-            diff_signal = np.abs(mix_audio - acc_audio - stem_audio["vocals"])
+            diff_signal = np.abs(mix_audio - acc_audio - stem_audio[key_vocals])
             print("Maximum absolute deviation from source additivity constraint: " + str(
                 np.max(diff_signal)))  # Check if acc+vocals=mix
             print("Mean absolute deviation from source additivity constraint:    " + str(np.mean(diff_signal)))
@@ -132,7 +138,7 @@ def get_musdb_folds(root_path, version="HQ"):
     test_list = dataset[1]
 
     np.random.seed(1337)  # Ensure that partitioning is always the same on each run
-    size_train = 5
+    size_train = 2
     train_list = np.random.choice(train_val_list, size_train, replace=True)
     val_list = [elem for elem in train_val_list if elem not in train_list]
     # print("First training song: " + str(train_list[0])) # To debug whether partitioning is deterministic

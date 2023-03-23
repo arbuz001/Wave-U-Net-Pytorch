@@ -1,15 +1,14 @@
 import argparse
 import os
+import pickle
 import time
 from functools import partial
 
-import torch
-import pickle
 import numpy as np
-
+import torch
 import torch.nn as nn
-from torch.utils.tensorboard import SummaryWriter
 from torch.optim import Adam
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 import model.utils as model_utils
@@ -17,15 +16,16 @@ import utils
 from data.dataset import SeparationDataset
 from data.musdb import get_musdb_folds
 from data.utils import crop_targets, random_amplify
-from test import evaluate, validate
 from model.waveunet import Waveunet
+from test import evaluate, validate
+
 
 def main(args):
-    #torch.backends.cudnn.benchmark=True # This makes dilated conv much faster for CuDNN 7.5
+    # torch.backends.cudnn.benchmark=True # This makes dilated conv much faster for CuDNN 7.5
 
     # MODEL
-    num_features = [args.features*i for i in range(1, args.levels+1)] if args.feature_growth == "add" else \
-                   [args.features*2**i for i in range(0, args.levels)]
+    num_features = [args.features * i for i in range(1, args.levels + 1)] if args.feature_growth == "add" else \
+        [args.features * 2 ** i for i in range(0, args.levels)]
     target_outputs = int(args.output_size * args.sr)
     model = Waveunet(args.channels, num_features, args.channels, args.instruments, kernel_size=args.kernel_size,
                      target_output_size=target_outputs, depth=args.depth, strides=args.strides,
@@ -47,11 +47,15 @@ def main(args):
     crop_func = partial(crop_targets, shapes=model.shapes)
     # Data augmentation function for training
     augment_func = partial(random_amplify, shapes=model.shapes, min=0.7, max=1.0)
-    train_data = SeparationDataset(musdb, "train", args.instruments, args.sr, args.channels, model.shapes, True, args.hdf_dir, audio_transform=augment_func)
-    val_data = SeparationDataset(musdb, "val", args.instruments, args.sr, args.channels, model.shapes, False, args.hdf_dir, audio_transform=crop_func)
-    test_data = SeparationDataset(musdb, "test", args.instruments, args.sr, args.channels, model.shapes, False, args.hdf_dir, audio_transform=crop_func)
+    train_data = SeparationDataset(musdb, "train", args.instruments, args.sr, args.channels, model.shapes, True,
+                                   args.hdf_dir, audio_transform=augment_func)
+    val_data = SeparationDataset(musdb, "val", args.instruments, args.sr, args.channels, model.shapes, False,
+                                 args.hdf_dir, audio_transform=crop_func)
+    test_data = SeparationDataset(musdb, "test", args.instruments, args.sr, args.channels, model.shapes, False,
+                                  args.hdf_dir, audio_transform=crop_func)
 
-    dataloader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, worker_init_fn=utils.worker_init_fn)
+    dataloader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, shuffle=True,
+                                             num_workers=args.num_workers, worker_init_fn=utils.worker_init_fn)
 
     ##### TRAINING ####
 
@@ -67,10 +71,10 @@ def main(args):
     optimizer = Adam(params=model.parameters(), lr=args.lr)
 
     # Set up training state dict that will also be saved into checkpoints
-    state = {"step" : 0,
-             "worse_epochs" : 0,
-             "epochs" : 0,
-             "best_loss" : np.Inf}
+    state = {"step": 0,
+             "worse_epochs": 0,
+             "epochs": 0,
+             "best_loss": np.Inf}
 
     # LOAD MODEL CHECKPOINT IF DESIRED
     if args.load_model is not None:
@@ -93,7 +97,8 @@ def main(args):
                 t = time.time()
 
                 # Set LR for this iteration
-                utils.set_cyclic_lr(optimizer, example_num, len(train_data) // args.batch_size, args.cycles, args.min_lr, args.lr)
+                utils.set_cyclic_lr(optimizer, example_num, len(train_data) // args.batch_size, args.cycles,
+                                    args.min_lr, args.lr)
                 writer.add_scalar("lr", utils.get_lr(optimizer), state["step"])
 
                 # Compute loss for each instrument/model
@@ -110,12 +115,16 @@ def main(args):
                 writer.add_scalar("train_loss", avg_loss, state["step"])
 
                 if example_num % args.example_freq == 0:
-                    input_centre = torch.mean(x[0, :, model.shapes["output_start_frame"]:model.shapes["output_end_frame"]], 0) # Stereo not supported for logs yet
+                    input_centre = torch.mean(
+                        x[0, :, model.shapes["output_start_frame"]:model.shapes["output_end_frame"]],
+                        0)  # Stereo not supported for logs yet
                     writer.add_audio("input", input_centre, state["step"], sample_rate=args.sr)
 
                     for inst in outputs.keys():
-                        writer.add_audio(inst + "_pred", torch.mean(outputs[inst][0], 0), state["step"], sample_rate=args.sr)
-                        writer.add_audio(inst + "_target", torch.mean(targets[inst][0], 0), state["step"], sample_rate=args.sr)
+                        writer.add_audio(inst + "_pred", torch.mean(outputs[inst][0], 0), state["step"],
+                                         sample_rate=args.sr)
+                        writer.add_audio(inst + "_target", torch.mean(targets[inst][0], 0), state["step"],
+                                         sample_rate=args.sr)
 
                 pbar.update(1)
 
@@ -139,7 +148,6 @@ def main(args):
         print("Saving model...")
         model_utils.save_model(model, optimizer, state, checkpoint_path)
 
-
     #### TESTING ####
     # Test loss
     print("TESTING")
@@ -158,8 +166,8 @@ def main(args):
         pickle.dump(test_metrics, f)
 
     # Write most important metrics into Tensorboard log
-    avg_SDRs = {inst : np.mean([np.nanmean(song[inst]["SDR"]) for song in test_metrics]) for inst in args.instruments}
-    avg_SIRs = {inst : np.mean([np.nanmean(song[inst]["SIR"]) for song in test_metrics]) for inst in args.instruments}
+    avg_SDRs = {inst: np.mean([np.nanmean(song[inst]["SDR"]) for song in test_metrics]) for inst in args.instruments}
+    avg_SIRs = {inst: np.mean([np.nanmean(song[inst]["SIR"]) for song in test_metrics]) for inst in args.instruments}
     for inst in args.instruments:
         writer.add_scalar("test_SDR_" + inst, avg_SDRs[inst], state["step"])
         writer.add_scalar("test_SIR_" + inst, avg_SIRs[inst], state["step"])
@@ -168,6 +176,8 @@ def main(args):
     print("SDR: " + str(overall_SDR))
 
     writer.close()
+    print("done x")
+
 
 if __name__ == '__main__':
     ## TRAIN PARAMETERS
@@ -230,3 +240,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main(args)
+    print("done training")
