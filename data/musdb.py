@@ -10,16 +10,16 @@ from data.utils import load, write_wav
 # stems_no_mix = ["bass", "drums", "other", "vocals"]
 # stems_no_mix_no_vocal = ["bass", "drums", "other"]
 
-stems_with_mix = ["mix", "Co-60", "Cs-137", "I-131", "Ru-106"]
-key_vocals = "Ru-106"
-stems_no_mix = ["Co-60", "Cs-137", "I-131", "Ru-106"]
-stems_no_mix_no_vocal = ["Co-60", "Cs-137", "I-131"]
-
-
-# stems_with_mix = ["mix", "Co-60", "Ru-106"]
+# stems_with_mix = ["mix", "Co-60", "Cs-137", "I-131", "Ru-106"]
 # key_vocals = "Ru-106"
-# stems_no_mix = ["Co-60", "Ru-106"]
-# stems_no_mix_no_vocal = ["Co-60"]
+# stems_no_mix = ["Co-60", "Cs-137", "I-131", "Ru-106"]
+# stems_no_mix_no_vocal = ["Co-60", "Cs-137", "I-131"]
+
+
+stems_with_mix = ["mix", "Co-60", "Ru-106"]
+key_vocals = "Ru-106"
+stems_no_mix = ["Co-60", "Ru-106"]
+stems_no_mix_no_vocal = ["Co-60"]
 
 
 def get_musdbhq(database_path):

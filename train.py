@@ -82,6 +82,10 @@ def main(args):
         state = model_utils.load_model(model, optimizer, args.load_model, args.cuda)
 
     print('TRAINING START')
+
+    print(f"worse_epochs{state['worse_epochs']} < ")
+    print(f"args.patience{args.patience}")
+
     while state["worse_epochs"] < args.patience:
         print("Training one epoch from iteration " + str(state["step"]))
         avg_time = 0.
