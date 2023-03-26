@@ -15,6 +15,7 @@ key_vocals = "Ru-106"
 stems_no_mix = ["Co-60", "Cs-137", "I-131", "Ru-106"]
 stems_no_mix_no_vocal = ["Co-60", "Cs-137", "I-131"]
 
+
 # stems_with_mix = ["mix", "Co-60", "Ru-106"]
 # key_vocals = "Ru-106"
 # stems_no_mix = ["Co-60", "Ru-106"]
@@ -140,8 +141,8 @@ def get_musdb_folds(root_path, version="HQ"):
     test_list = dataset[1]
 
     np.random.seed(1337)  # Ensure that partitioning is always the same on each run
-    size_train = 2
-    train_list = np.random.choice(train_val_list, size_train, replace=True)
+    size_train = max(int(len(train_val_list) * .80), 1)
+    train_list = np.random.choice(train_val_list, size_train, replace=False)
     val_list = [elem for elem in train_val_list if elem not in train_list]
     # print("First training song: " + str(train_list[0])) # To debug whether partitioning is deterministic
     return {"train": train_list, "val": val_list, "test": test_list}
