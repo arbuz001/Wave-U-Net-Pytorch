@@ -83,9 +83,6 @@ def main(args):
 
     print('TRAINING START')
 
-    print(f"worse_epochs{state['worse_epochs']} < ")
-    print(f"args.patience{args.patience}")
-
     while state["worse_epochs"] < args.patience:
         print("Training one epoch from iteration " + str(state["step"]))
         avg_time = 0.
@@ -148,9 +145,10 @@ def main(args):
             state["best_checkpoint"] = checkpoint_path
 
         state["epochs"] += 1
-        # CHECKPOINT
-        print("Saving model...")
-        model_utils.save_model(model, optimizer, state, checkpoint_path)
+        if state["epochs"]%10 ==0:
+            # CHECKPOINT
+            print("Saving model...")
+            model_utils.save_model(model, optimizer, state, checkpoint_path)
 
     #### TESTING ####
     # Test loss
