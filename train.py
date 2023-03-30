@@ -115,7 +115,7 @@ def main(args):
 
                 writer.add_scalar("train_loss", avg_loss, state["step"])
 
-                if example_num % args.example_freq == 0:
+                if example_num % args.example_freq == 0 and args.save_audio_to_logs:
                     input_centre = torch.mean(
                         x[0, :, model.shapes["output_start_frame"]:model.shapes["output_end_frame"]],
                         0)  # Stereo not supported for logs yet
@@ -145,7 +145,7 @@ def main(args):
             state["best_checkpoint"] = checkpoint_path
 
         state["epochs"] += 1
-        if state["epochs"]%10 ==0:
+        if state["epochs"] % 10 == 0:
             # CHECKPOINT
             print("Saving model...")
             model_utils.save_model(model, optimizer, state, checkpoint_path)
@@ -238,6 +238,8 @@ if __name__ == '__main__':
                         help="Train separate model for each source (1) or only one (0)")
     parser.add_argument('--feature_growth', type=str, default="double",
                         help="How the features in each layer should grow, either (add) the initial number of features each time, or multiply by 2 (double)")
+    parser.add_argument('--save_audio_to_logs', type=bool, default=False,
+                        help="Whether to add output with audio samples from training to log in tensorboard (True) or (False)")
 
     args = parser.parse_args()
 
