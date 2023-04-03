@@ -1,5 +1,6 @@
 import argparse
 import os
+from pathlib import Path
 
 import data.utils
 import model.utils as model_utils
@@ -25,12 +26,22 @@ def main(args):
     state = model_utils.load_model(model, None, args.load_model, args.cuda)
     print('Step', state['step'])
 
-    preds = predict_song(args, args.input, model)
-
-    output_folder = os.path.dirname(args.input) if args.output is None else args.output
-    for inst in preds.keys():
-        data.utils.write_wav(os.path.join(output_folder, os.path.basename(args.input) + "_" + inst + ".wav"),
-                             preds[inst], args.sr)
+    args_input = args.input
+    if args_input.split("/")[-1].endswith("mixture.wav"):
+        preds = predict_song(args, args_input, model)
+        output_folder = os.path.dirname(args_input) if args.output is None else args.output
+        for inst in preds.keys():
+            data.utils.write_wav(os.path.join(output_folder, os.path.basename(args_input) + "_" + inst + ".wav"),
+                                 preds[inst], args.sr)
+    else:
+        walker = sorted(str(p) for p in Path(args_input).rglob("*/mixture.wav"))
+        for args_input in walker:
+            print(args_input)
+            preds = predict_song(args, args_input, model)
+            output_folder = os.path.dirname(args_input) if args.output is None else args.output
+            for inst in preds.keys():
+                data.utils.write_wav(os.path.join(output_folder, os.path.basename(args_input) + "_" + inst + ".wav"),
+                                     preds[inst], args.sr)
 
 
 if __name__ == '__main__':
