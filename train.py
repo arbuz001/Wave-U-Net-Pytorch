@@ -1,12 +1,11 @@
 import argparse
+import numpy as np
 import os
 import pickle
 import time
-from functools import partial
-
-import numpy as np
 import torch
 import torch.nn as nn
+from functools import partial
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -183,14 +182,14 @@ def main(args):
 if __name__ == '__main__':
     ## TRAIN PARAMETERS
     parser = argparse.ArgumentParser()
-    
+
     parser.add_argument('--instruments', type=str, nargs='+', default=["other", "Ru-106"],
                         help="List of instruments to separate (default: \"Ru-106 Co-60 other\")")
     parser.add_argument('--cuda', action='store_true',
                         help='Use CUDA (default: False)')
     parser.add_argument('--features', type=int, default=int(env['FEATURES']),
                         help='Number of feature channels per layer')
-    parser.add_argument('--load_model', type=str, default = None if env['LOAD_MODEL'] == 'None' else env['LOAD_MODEL'],
+    parser.add_argument('--load_model', type=str, default=None if env['LOAD_MODEL'] == 'None' else env['LOAD_MODEL'],
                         help='Reload a previously trained model')
     parser.add_argument('--batch_size', type=int, default=int(env['BATCH_SIZE']),
                         help="Batch size")
@@ -216,16 +215,17 @@ if __name__ == '__main__':
                         help="How the features in each layer should grow, either (add) the initial number of features each time, or multiply by 2 (double)")
     parser.add_argument('--input', type=str, default=str(env['INPUT']),
                         help="Path to input mixture to be separated")
-    parser.add_argument('--output', type=str, default = None if env['OUTPUT'] == 'None' else env['OUTPUT'], help="Output path (same folder as input path if not set)")
+    parser.add_argument('--output', type=str, default=None if env['OUTPUT'] == 'None' else env['OUTPUT'],
+                        help="Output path (same folder as input path if not set)")
     parser.add_argument('--num_workers', type=int, default=int(env['NUM_WORKERS']),
                         help='Number of data loader worker threads (default: 1)')
     parser.add_argument('--log_dir', type=str, default=str(env['LOG_DIR']),
                         help='Folder to write logs into')
-    parser.add_argument('--dataset_dir', type=str, default = str(env['DATASET_DIR']),
+    parser.add_argument('--dataset_dir', type=str, default=str(env['DATASET_DIR']),
                         help='Dataset path')
     parser.add_argument('--hdf_dir', type=str, default=str(env['HDF_DIR']),
                         help='Dataset path')
-    parser.add_argument('--checkpoint_dir', type=str, default = str(env['CHECKPOINT_DIR']),
+    parser.add_argument('--checkpoint_dir', type=str, default=str(env['CHECKPOINT_DIR']),
                         help='Folder to write checkpoints into')
     parser.add_argument('--lr', type=float, default=float(env['LR']),
                         help='Initial learning rate in LR cycle (default: 1e-3)')
