@@ -1,17 +1,12 @@
 import argparse
 import os
-from pathlib import Path
 from os import environ as env
+from pathlib import Path
+
 import data.utils
 import model.utils as model_utils
 from model.waveunet import Waveunet
 from test import predict_song
-
-def environ_or_required(key):
-    return (
-        {'default': os.environ.get(key)} if os.environ.get(key)
-        else {'required': True}
-    )
 
 
 def main(args):
@@ -52,43 +47,42 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--instruments', type=str, nargs='+', default=["bass", "drums", "other", "vocals"],
-                        help="List of instruments to separate (default: \"bass drums other vocals\")")
+    parser.add_argument('--instruments', type=str, nargs='+', default=["other", "Ru-106"],
+                        help="List of instruments to separate (default: \"Ru-106 Co-60 other\")")
     parser.add_argument('--cuda', action='store_true',
                         help='Use CUDA (default: False)')
-    parser.add_argument('--features', type=int, default=**environ_or_required('FEATURES'),
+    parser.add_argument('--features', type=int, default=int(env['FEATURES']),
                         help='Number of feature channels per layer')
-    parser.add_argument('--load_model', type=str, default=**environ_or_required('LOAD_MODEL'),
+    parser.add_argument('--load_model', type=str, default=str(env['LOAD_MODEL']),
                         help='Reload a previously trained model')
-    parser.add_argument('--batch_size', type=int, **environ_or_required('BATCH_SIZE'),
+    parser.add_argument('--batch_size', type=int, default=int(env['BATCH_SIZE']),
                         help="Batch size")
     parser.add_argument('--levels', type=int, default=6,
                         help="Number of DS/US blocks")
-    parser.add_argument('--depth', type=int, **environ_or_required('DEPTH'),
+    parser.add_argument('--depth', type=int, default=int(env['DEPTH']),
                         help="Number of convs per block")
-    parser.add_argument('--sr', type=int, **environ_or_required('SR'),
-                        help="Sampling rate")
-    parser.add_argument('--channels', type=int, **environ_or_required('CHANNELS'),
-                        help="Number of input audio channels")
-    parser.add_argument('--kernel_size', type=int, **environ_or_required('KERNEL_SIZE'),
+    parser.add_argument('--sr', type=int, default=int(env['SR']), help="Sampling rate")
+    parser.add_argument('--channels', type=int, default=int(env['CHANNELS']), help="Number of input audio channels")
+    parser.add_argument('--kernel_size', type=int, default=int(env['KERNEL_SIZE']),
                         help="Filter width of kernels. Has to be an odd number")
-    parser.add_argument('--output_size', type=float, default=**environ_or_required('OUTPUT_SIZE'),
+    parser.add_argument('--output_size', type=float, default=int(env['OUTPUT_SIZE']),
                         help="Output duration")
-    parser.add_argument('--strides', type=int, **environ_or_required('STRIDES'),
+    parser.add_argument('--strides', type=int, default=int(env['STRIDES']),
                         help="Strides in Waveunet")
-    parser.add_argument('--conv_type', type=str, **environ_or_required('CONV_TYPE'),
+    parser.add_argument('--conv_type', type=str, default=str(env['CONV_TYPE']),
                         help="Type of convolution (normal, BN-normalised, GN-normalised): normal/bn/gn")
-    parser.add_argument('--res', type=str, **environ_or_required('RES'),
+    parser.add_argument('--res', type=str, default=str(env['RES']),
                         help="Resampling strategy: fixed sinc-based lowpass filtering or learned conv layer: fixed/learned")
-    parser.add_argument('--separate', type=int, **environ_or_required('SEPARATE'),
+    parser.add_argument('--separate', type=int, default=int(env['SEPARATE']),
                         help="Train separate model for each source (1) or only one (0)")
-    parser.add_argument('--feature_growth', type=str, **environ_or_required('FEATURE_GROWTH'),
+    parser.add_argument('--feature_growth', type=str, default=str(env['FEATURE_GROWTH']),
                         help="How the features in each layer should grow, either (add) the initial number of features each time, or multiply by 2 (double)")
-    parser.add_argument('--input', type=str, **environ_or_required('INPUT'),
+    parser.add_argument('--input', type=str, default=str(env['INPUT']),
                         help="Path to input mixture to be separated")
-    parser.add_argument('--output', type=str, **environ_or_required('OUTPUT'), help="Output path (same folder as input path if not set)")
+    parser.add_argument('--output', type=str, default=str(env['OUTPUT']),
+                        help="Output path (same folder as input path if not set)")
 
-    args = parser.parse_args()
+    args = parser.parse_args("--cuda")
 
     main(args)
     print("done")
