@@ -1,22 +1,22 @@
 DEBUG_MODE=1
 
 APP_ROOT_PATH=/home/aarbuzov/work-and-study/git/Wave-U-Net-Pytorch
-LOAD_MODEL=${APP_ROOT_PATH}/checkpoint2/checkpoint_30200/
-INPUT=${APP_ROOT_PATH}/audio_examples/
+LOAD_MODEL=${APP_ROOT_PATH}/checkpoints/checkpoint_30200
+INPUT=${APP_ROOT_PATH}/audio_examples/mixture-noRU106_2_classes_sr11025_n=840/mixture.wav
+OUTPUT=${APP_ROOT_PATH}/audio_examples/mixture-noRU106_2_classes_sr11025_n=840/
 CHANNELS=1
 SR=11025
 
 INSTRUMENTS=1 
 CUDA=1 
-FEATURES=1 
-BATCH_SIZE=1 
-LEVELS=1 
+FEATURES=32 
+BATCH_SIZE=4
+LEVELS=6 
 DEPTH=1 
-KERNEL_SIZE=1 
-OUTPUT_SIZE=1 
-STRIDES=1 
-CONV_TYPE=1 
-RES=1 
+KERNEL_SIZE=5 
+OUTPUT_SIZE=1.0 
+STRIDES=4 
+CONV_TYPE=gn 
+RES=fixed 
 SEPARATE=1 
-FEATURE_GROWTH=1 
-OUTPUT=1 
+FEATURE_GROWTH=double

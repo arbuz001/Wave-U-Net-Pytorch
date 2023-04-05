@@ -65,7 +65,7 @@ if __name__ == '__main__':
     parser.add_argument('--channels', type=int, default=int(env['CHANNELS']), help="Number of input audio channels")
     parser.add_argument('--kernel_size', type=int, default=int(env['KERNEL_SIZE']),
                         help="Filter width of kernels. Has to be an odd number")
-    parser.add_argument('--output_size', type=float, default=int(env['OUTPUT_SIZE']),
+    parser.add_argument('--output_size', type=float, default=float(env['OUTPUT_SIZE']),
                         help="Output duration")
     parser.add_argument('--strides', type=int, default=int(env['STRIDES']),
                         help="Strides in Waveunet")
@@ -81,7 +81,6 @@ if __name__ == '__main__':
                         help="Path to input mixture to be separated")
     parser.add_argument('--output', type=str, default=str(env['OUTPUT']),
                         help="Output path (same folder as input path if not set)")
-
     args = parser.parse_args("--cuda".split())
 
     main(args)
