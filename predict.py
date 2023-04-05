@@ -82,7 +82,7 @@ if __name__ == '__main__':
     parser.add_argument('--output', type=str, default=str(env['OUTPUT']),
                         help="Output path (same folder as input path if not set)")
 
-    args = parser.parse_args("--cuda")
+    args = parser.parse_args("--cuda".split())
 
     main(args)
     print("done")
