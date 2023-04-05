@@ -1,0 +1,7 @@
+DEBUG_MODE=1
+
+APP_ROOT_PATH=/home/aarbuzov/work-and-study/git/Wave-U-Net-Pytorch
+LOAD_MODEL=${APP_ROOT_PATH}/checkpoint2/checkpoint_30200/
+INPUT=${APP_ROOT_PATH}/audio_examples/
+CHANNELS=1
+SR=11025
