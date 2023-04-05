@@ -9,12 +9,12 @@
 # to create config
 # nano nano /home/aarbuzov/.jupyter/jupyter_server_config.json
 # {  
-  # "NotebookApp": {
-    # "allow_remote_access":true,
-    # "ip":"192.168.112.60",
-    # "port":8888,
-    # "allow_root":true
-  # }
+#   "NotebookApp": {
+#    "allow_remote_access":true,
+#    "ip":"192.168.112.60",
+#    "port":8888,
+#    "allow_root":true
+#  }
 # }
 
 
