@@ -79,7 +79,8 @@ if __name__ == '__main__':
                         help="How the features in each layer should grow, either (add) the initial number of features each time, or multiply by 2 (double)")
     parser.add_argument('--input', type=str, default=str(env['INPUT']),
                         help="Path to input mixture to be separated")
-    parser.add_argument('--output', type=str, default = None if env['OUTPUT'] == 'None' else env['OUTPUT'], help="Output path (same folder as input path if not set)")
+    parser.add_argument('--output', type=str, default=None if env['OUTPUT'] == 'None' else env['OUTPUT'],
+                        help="Output path (same folder as input path if not set)")
     args = parser.parse_args("--cuda".split())
 
     main(args)
