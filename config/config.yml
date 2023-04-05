@@ -3,7 +3,7 @@ DEBUG_MODE=1
 APP_ROOT_PATH=/home/aarbuzov/work-and-study/git/Wave-U-Net-Pytorch
 LOAD_MODEL=${APP_ROOT_PATH}/checkpoints/checkpoint_30200
 INPUT=${APP_ROOT_PATH}/audio_examples/mixture-noRU106_2_classes_sr11025_n=840/mixture.wav
-OUTPUT=${APP_ROOT_PATH}/audio_examples/mixture-noRU106_2_classes_sr11025_n=840/
+OUTPUT=None
 CHANNELS=1
 SR=11025
 
