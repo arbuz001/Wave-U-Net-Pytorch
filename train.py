@@ -178,66 +178,67 @@ def main(args):
     print("SDR: " + str(overall_SDR))
 
     writer.close()
-    print("done x")
 
 
 if __name__ == '__main__':
     ## TRAIN PARAMETERS
     parser = argparse.ArgumentParser()
-    parser.add_argument('--instruments', type=str, nargs='+', default=["bass", "drums", "other", "vocals"],
-                        help="List of instruments to separate (default: \"bass drums other vocals\")")
+    
+    parser.add_argument('--instruments', type=str, nargs='+', default=["other", "Ru-106"],
+                        help="List of instruments to separate (default: \"Ru-106 Co-60 other\")")
     parser.add_argument('--cuda', action='store_true',
                         help='Use CUDA (default: False)')
-    parser.add_argument('--num_workers', type=int, default=1,
-                        help='Number of data loader worker threads (default: 1)')
-    parser.add_argument('--features', type=int, default=32,
+    parser.add_argument('--features', type=int, default=int(env['FEATURES']),
                         help='Number of feature channels per layer')
-    parser.add_argument('--log_dir', type=str, default='logs/waveunet',
-                        help='Folder to write logs into')
-    parser.add_argument('--dataset_dir', type=str, default="/mnt/windaten/Datasets/MUSDB18HQ",
-                        help='Dataset path')
-    parser.add_argument('--hdf_dir', type=str, default="hdf",
-                        help='Dataset path')
-    parser.add_argument('--checkpoint_dir', type=str, default='checkpoints/waveunet',
-                        help='Folder to write checkpoints into')
-    parser.add_argument('--load_model', type=str, default=None,
-                        help='Reload a previously trained model (whole task model)')
-    parser.add_argument('--lr', type=float, default=1e-3,
-                        help='Initial learning rate in LR cycle (default: 1e-3)')
-    parser.add_argument('--min_lr', type=float, default=5e-5,
-                        help='Minimum learning rate in LR cycle (default: 5e-5)')
-    parser.add_argument('--cycles', type=int, default=2,
-                        help='Number of LR cycles per epoch')
-    parser.add_argument('--batch_size', type=int, default=4,
+    parser.add_argument('--load_model', type=str, default = None if env['LOAD_MODEL'] == 'None' else env['LOAD_MODEL'],
+                        help='Reload a previously trained model')
+    parser.add_argument('--batch_size', type=int, default=int(env['BATCH_SIZE']),
                         help="Batch size")
     parser.add_argument('--levels', type=int, default=6,
                         help="Number of DS/US blocks")
-    parser.add_argument('--depth', type=int, default=1,
+    parser.add_argument('--depth', type=int, default=int(env['DEPTH']),
                         help="Number of convs per block")
-    parser.add_argument('--sr', type=int, default=44100,
-                        help="Sampling rate")
-    parser.add_argument('--channels', type=int, default=2,
-                        help="Number of input audio channels")
-    parser.add_argument('--kernel_size', type=int, default=5,
+    parser.add_argument('--sr', type=int, default=int(env['SR']), help="Sampling rate")
+    parser.add_argument('--channels', type=int, default=int(env['CHANNELS']), help="Number of input audio channels")
+    parser.add_argument('--kernel_size', type=int, default=int(env['KERNEL_SIZE']),
                         help="Filter width of kernels. Has to be an odd number")
-    parser.add_argument('--output_size', type=float, default=2.0,
+    parser.add_argument('--output_size', type=float, default=float(env['OUTPUT_SIZE']),
                         help="Output duration")
-    parser.add_argument('--strides', type=int, default=4,
+    parser.add_argument('--strides', type=int, default=int(env['STRIDES']),
                         help="Strides in Waveunet")
-    parser.add_argument('--patience', type=int, default=20,
-                        help="Patience for early stopping on validation set")
-    parser.add_argument('--example_freq', type=int, default=200,
-                        help="Write an audio summary into Tensorboard logs every X training iterations")
-    parser.add_argument('--loss', type=str, default="L1",
-                        help="L1 or L2")
-    parser.add_argument('--conv_type', type=str, default="gn",
+    parser.add_argument('--conv_type', type=str, default=str(env['CONV_TYPE']),
                         help="Type of convolution (normal, BN-normalised, GN-normalised): normal/bn/gn")
-    parser.add_argument('--res', type=str, default="fixed",
+    parser.add_argument('--res', type=str, default=str(env['RES']),
                         help="Resampling strategy: fixed sinc-based lowpass filtering or learned conv layer: fixed/learned")
-    parser.add_argument('--separate', type=int, default=1,
+    parser.add_argument('--separate', type=int, default=int(env['SEPARATE']),
                         help="Train separate model for each source (1) or only one (0)")
-    parser.add_argument('--feature_growth', type=str, default="double",
+    parser.add_argument('--feature_growth', type=str, default=str(env['FEATURE_GROWTH']),
                         help="How the features in each layer should grow, either (add) the initial number of features each time, or multiply by 2 (double)")
+    parser.add_argument('--input', type=str, default=str(env['INPUT']),
+                        help="Path to input mixture to be separated")
+    parser.add_argument('--output', type=str, default = None if env['OUTPUT'] == 'None' else env['OUTPUT'], help="Output path (same folder as input path if not set)")
+    parser.add_argument('--num_workers', type=int, default=int(env['NUM_WORKERS']),
+                        help='Number of data loader worker threads (default: 1)')
+    parser.add_argument('--log_dir', type=str, default=str(env['LOG_DIR']),
+                        help='Folder to write logs into')
+    parser.add_argument('--dataset_dir', type=str, default = str(env['DATASET_DIR']),
+                        help='Dataset path')
+    parser.add_argument('--hdf_dir', type=str, default=str(env['HDF_DIR']),
+                        help='Dataset path')
+    parser.add_argument('--checkpoint_dir', type=str, default = str(env['CHECKPOINT_DIR']),
+                        help='Folder to write checkpoints into')
+    parser.add_argument('--lr', type=float, default=float(env['LR']),
+                        help='Initial learning rate in LR cycle (default: 1e-3)')
+    parser.add_argument('--min_lr', type=float, default=float(env['MIN_LR']),
+                        help='Minimum learning rate in LR cycle (default: 5e-5)')
+    parser.add_argument('--cycles', type=int, default=int(env['CYCLES']),
+                        help='Number of LR cycles per epoch')
+    parser.add_argument('--patience', type=int, default=int(env['PATIENCE']),
+                        help="Patience for early stopping on validation set")
+    parser.add_argument('--example_freq', type=int, default=int(env['EXAMPLE_FREQ']),
+                        help="Write an audio summary into Tensorboard logs every X training iterations")
+    parser.add_argument('--loss', type=str, default=str(env['LOSS']),
+                        help="L1 or L2")
     parser.add_argument('--save_audio_to_logs', type=bool, default=False,
                         help="Whether to add output with audio samples from training to log in tensorboard (True) or (False)")
 
