@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "wave-u-net-pytorch-fork"
+version = "0.1.0"
+description = ""
+authors = ["Alexey Arbuzov <alexey.arbuzov@gmail.com>"]
+readme = "README.md"
+packages = [{include = "wave_u_net_pytorch_fork"}]
+
+[tool.poetry.dependencies]
+python = "3.10.9"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
