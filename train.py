@@ -183,7 +183,7 @@ if __name__ == '__main__':
     ## TRAIN PARAMETERS
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--instruments', type=str, nargs='+', default=["other", "Ru-106"],
+    parser.add_argument('--instruments', type=str, nargs='+', default=["other", "Fe-59"],
                         help="List of instruments to separate (default: \"Ru-106 Co-60 other\")")
     parser.add_argument('--cuda', action='store_true',
                         help='Use CUDA (default: False)')

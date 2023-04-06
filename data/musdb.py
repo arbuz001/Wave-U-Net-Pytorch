@@ -15,9 +15,15 @@ from data.utils import load, write_wav
 # stems_no_mix = ['Am-241', 'Co-60', 'Cs-137', 'Mn-54', 'Ru-106', 'Zn-65']
 # stems_no_mix_no_vocal = ['Am-241', 'Co-60', 'Cs-137', 'Mn-54', 'Zn-65']
 
-stems_with_mix = ["mix", "other", "Ru-106"]
-key_vocals = "Ru-106"
-stems_no_mix = ["other", "Ru-106"]
+# stems_with_mix = ["mix", "other", "Ru-106"]
+# key_vocals = "Ru-106"
+# stems_no_mix = ["other", "Ru-106"]
+# stems_no_mix_no_vocal = ["other"]
+
+# dataset musdb18hq_geant4_2_classes_Fe59_n=629
+stems_with_mix = ["mix", "other", "Fe-59"]
+key_vocals = "Fe-59"
+stems_no_mix = ["other", "Fe-59"]
 stems_no_mix_no_vocal = ["other"]
 
 # stems_with_mix = ["mix", "Co-60", "Ru-106"]
