@@ -23,5 +23,5 @@ SR=11025
 STRIDES=4
 
 REGISTRY_URI_NAME=sqlite:///mlflow.db
-TRACKING_URI_NAME=http://0.0.0.0:5001
-EXPERIMENT_NAME=GammaSpectraGeant4_Eu152_decomposition
+TRACKING_URI_NAME=http://0.0.0.0:5003
+EXPERIMENT_NAME=GammaSpectraGeant4_Eu152
