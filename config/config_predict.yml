@@ -1,0 +1,27 @@
+DEBUG_MODE=1
+APP_ROOT_PATH=/home/aarbuzov/work-and-study/git/Wave-U-Net-Pytorch
+BATCH_SIZE=4
+CHANNELS=1
+CONV_TYPE=gn 
+CUDA=1 
+DEPTH=1 
+FEATURE_GROWTH=double
+FEATURES=32
+ALPHA_NUCLIDE=Eu-152
+# INPUT=${APP_ROOT_PATH}/audio_examples/musdb18hq_geant4_2_classes_Fe59_test_n=629/
+INPUT=${APP_ROOT_PATH}/audio_examples/musdb18hq_geant4_2_classes_Eu152_n=720/
+INSTRUMENTS=1 
+KERNEL_SIZE=5 
+LEVELS=6 
+#LOAD_MODEL=${APP_ROOT_PATH}/checkpoints_n=629/checkpoint_32262
+LOAD_MODEL=${APP_ROOT_PATH}/checkpoints_n=720/checkpoint_17446
+OUTPUT_SIZE=1.0 
+OUTPUT=None
+RES=fixed 
+SEPARATE=1 
+SR=11025
+STRIDES=4
+
+REGISTRY_URI_NAME=sqlite:///mlflow.db
+TRACKING_URI_NAME=http://0.0.0.0:5001
+EXPERIMENT_NAME=GammaSpectraGeant4_Eu152_decomposition
