@@ -1,22 +1,23 @@
 import argparse
-import numpy as np
 import os
-import pickle
 import time
+from functools import partial
+
+import numpy as np
 import torch
 import torch.nn as nn
-from functools import partial
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 import model.utils as model_utils
 import utils
+from configuration2.configuration import *
 from data.dataset import SeparationDataset
 from data.musdb import get_musdb_folds
 from data.utils import crop_targets, random_amplify
 from model.waveunet import Waveunet
-from test import evaluate, validate
+from test import validate
 
 
 def main(args):
@@ -57,7 +58,6 @@ def main(args):
                                              num_workers=args.num_workers, worker_init_fn=utils.worker_init_fn)
 
     ##### TRAINING ####
-
     # Set up the loss function
     if args.loss == "L1":
         criterion = nn.L1Loss()
@@ -84,7 +84,7 @@ def main(args):
 
     while state["worse_epochs"] < args.patience:
         print("Training one epoch from iteration " + str(state["step"]))
-        avg_time = 0.
+        avg_time = 0.0
         model.train()
         with tqdm(total=len(train_data) // args.batch_size) as pbar:
             np.random.seed()
@@ -134,115 +134,132 @@ def main(args):
         writer.add_scalar("val_loss", val_loss, state["step"])
 
         # EARLY STOPPING CHECK
+        checkpoint_path_previous = None
+        try:
+            checkpoint_path_previous = state["best_checkpoint"]
+        except:
+            print(f"No 'best_checkpoint' yet")
+
         checkpoint_path = os.path.join(args.checkpoint_dir, "checkpoint_" + str(state["step"]))
         if val_loss >= state["best_loss"]:
             state["worse_epochs"] += 1
         else:
             print("MODEL IMPROVED ON VALIDATION SET!")
+
             state["worse_epochs"] = 0
             state["best_loss"] = val_loss
             state["best_checkpoint"] = checkpoint_path
 
         state["epochs"] += 1
-        if state["epochs"] % 10 == 0:
+        n_down_sampling = 1
+        if state["epochs"] % n_down_sampling == 0:
+            try:
+                if os.path.exists(checkpoint_path_previous):
+                    print(f"Removing old file {checkpoint_path_previous}")
+                    os.remove(checkpoint_path_previous)
+            except:
+                print(f"No '{checkpoint_path_previous}' file found!")
+
             # CHECKPOINT
             print("Saving model...")
             model_utils.save_model(model, optimizer, state, checkpoint_path)
 
-    #### TESTING ####
-    # Test loss
-    print("TESTING")
-
-    # Load best model based on validation loss
-    state = model_utils.load_model(model, None, state["best_checkpoint"], args.cuda)
-    test_loss = validate(args, model, criterion, test_data)
-    print("TEST FINISHED: LOSS: " + str(test_loss))
-    writer.add_scalar("test_loss", test_loss, state["step"])
-
-    # Mir_eval metrics
-    test_metrics = evaluate(args, musdb["test"], model, args.instruments)
-
-    # Dump all metrics results into pickle file for later analysis if needed
-    with open(os.path.join(args.checkpoint_dir, "results.pkl"), "wb") as f:
-        pickle.dump(test_metrics, f)
-
-    # Write most important metrics into Tensorboard log
-    avg_SDRs = {inst: np.mean([np.nanmean(song[inst]["SDR"]) for song in test_metrics]) for inst in args.instruments}
-    avg_SIRs = {inst: np.mean([np.nanmean(song[inst]["SIR"]) for song in test_metrics]) for inst in args.instruments}
-    for inst in args.instruments:
-        writer.add_scalar("test_SDR_" + inst, avg_SDRs[inst], state["step"])
-        writer.add_scalar("test_SIR_" + inst, avg_SIRs[inst], state["step"])
-    overall_SDR = np.mean([v for v in avg_SDRs.values()])
-    writer.add_scalar("test_SDR", overall_SDR)
-    print("SDR: " + str(overall_SDR))
+    # #     #### TESTING ####
+    # #     # Test loss
+    # #     print("TESTING")
+    #
+    # #     # Load best model based on validation loss
+    # #     state = model_utils.load_model(model, None, state["best_checkpoint"], args.cuda)
+    # #     test_loss = validate(args, model, criterion, test_data)
+    # #     print("TEST FINISHED: LOSS: " + str(test_loss))
+    # #     writer.add_scalar("test_loss", test_loss, state["step"])
+    #
+    # #     # Mir_eval metrics
+    # #     test_metrics = evaluate(args, musdb["test"], model, args.instruments)
+    #
+    # #     # Dump all metrics results into pickle file for later analysis if needed
+    # #     with open(os.path.join(args.checkpoint_dir, "results.pkl"), "wb") as f:
+    # #         pickle.dump(test_metrics, f)
+    #
+    # #     # Write most important metrics into Tensorboard log
+    # #     avg_SDRs = {inst: np.mean([np.nanmean(song[inst]["SDR"]) for song in test_metrics]) for inst in args.instruments}
+    # #     avg_SIRs = {inst: np.mean([np.nanmean(song[inst]["SIR"]) for song in test_metrics]) for inst in args.instruments}
+    # #     for inst in args.instruments:
+    # #         writer.add_scalar("test_SDR_" + inst, avg_SDRs[inst], state["step"])
+    # #         writer.add_scalar("test_SIR_" + inst, avg_SIRs[inst], state["step"])
+    # #     overall_SDR = np.mean([v for v in avg_SDRs.values()])
+    # #     writer.add_scalar("test_SDR", overall_SDR)
+    # #     print("SDR: " + str(overall_SDR))
 
     writer.close()
+    return model
 
 
-if __name__ == '__main__':
-    ## TRAIN PARAMETERS
-    parser = argparse.ArgumentParser()
+# In[4]:
 
-    parser.add_argument('--instruments', type=str, nargs='+', default=["other", "Fe-59"],
-                        help="List of instruments to separate (default: \"Ru-106 Co-60 other\")")
-    parser.add_argument('--cuda', action='store_true',
-                        help='Use CUDA (default: False)')
-    parser.add_argument('--features', type=int, default=int(env['FEATURES']),
-                        help='Number of feature channels per layer')
-    parser.add_argument('--load_model', type=str, default=None if env['LOAD_MODEL'] == 'None' else env['LOAD_MODEL'],
-                        help='Reload a previously trained model')
-    parser.add_argument('--batch_size', type=int, default=int(env['BATCH_SIZE']),
-                        help="Batch size")
-    parser.add_argument('--levels', type=int, default=6,
-                        help="Number of DS/US blocks")
-    parser.add_argument('--depth', type=int, default=int(env['DEPTH']),
-                        help="Number of convs per block")
-    parser.add_argument('--sr', type=int, default=int(env['SR']), help="Sampling rate")
-    parser.add_argument('--channels', type=int, default=int(env['CHANNELS']), help="Number of input audio channels")
-    parser.add_argument('--kernel_size', type=int, default=int(env['KERNEL_SIZE']),
-                        help="Filter width of kernels. Has to be an odd number")
-    parser.add_argument('--output_size', type=float, default=float(env['OUTPUT_SIZE']),
-                        help="Output duration")
-    parser.add_argument('--strides', type=int, default=int(env['STRIDES']),
-                        help="Strides in Waveunet")
-    parser.add_argument('--conv_type', type=str, default=str(env['CONV_TYPE']),
-                        help="Type of convolution (normal, BN-normalised, GN-normalised): normal/bn/gn")
-    parser.add_argument('--res', type=str, default=str(env['RES']),
-                        help="Resampling strategy: fixed sinc-based lowpass filtering or learned conv layer: fixed/learned")
-    parser.add_argument('--separate', type=int, default=int(env['SEPARATE']),
-                        help="Train separate model for each source (1) or only one (0)")
-    parser.add_argument('--feature_growth', type=str, default=str(env['FEATURE_GROWTH']),
-                        help="How the features in each layer should grow, either (add) the initial number of features each time, or multiply by 2 (double)")
-    parser.add_argument('--input', type=str, default=str(env['INPUT']),
-                        help="Path to input mixture to be separated")
-    parser.add_argument('--output', type=str, default=None if env['OUTPUT'] == 'None' else env['OUTPUT'],
-                        help="Output path (same folder as input path if not set)")
-    parser.add_argument('--num_workers', type=int, default=int(env['NUM_WORKERS']),
-                        help='Number of data loader worker threads (default: 1)')
-    parser.add_argument('--log_dir', type=str, default=str(env['LOG_DIR']),
-                        help='Folder to write logs into')
-    parser.add_argument('--dataset_dir', type=str, default=str(env['DATASET_DIR']),
-                        help='Dataset path')
-    parser.add_argument('--hdf_dir', type=str, default=str(env['HDF_DIR']),
-                        help='Dataset path')
-    parser.add_argument('--checkpoint_dir', type=str, default=str(env['CHECKPOINT_DIR']),
-                        help='Folder to write checkpoints into')
-    parser.add_argument('--lr', type=float, default=float(env['LR']),
-                        help='Initial learning rate in LR cycle (default: 1e-3)')
-    parser.add_argument('--min_lr', type=float, default=float(env['MIN_LR']),
-                        help='Minimum learning rate in LR cycle (default: 5e-5)')
-    parser.add_argument('--cycles', type=int, default=int(env['CYCLES']),
-                        help='Number of LR cycles per epoch')
-    parser.add_argument('--patience', type=int, default=int(env['PATIENCE']),
-                        help="Patience for early stopping on validation set")
-    parser.add_argument('--example_freq', type=int, default=int(env['EXAMPLE_FREQ']),
-                        help="Write an audio summary into Tensorboard logs every X training iterations")
-    parser.add_argument('--loss', type=str, default=str(env['LOSS']),
-                        help="L1 or L2")
-    parser.add_argument('--save_audio_to_logs', type=bool, default=False,
-                        help="Whether to add output with audio samples from training to log in tensorboard (True) or (False)")
+parser = argparse.ArgumentParser()
 
-    args = parser.parse_args()
+parser.add_argument('--instruments', type=str, nargs='+', default=["other", f"{str(env['ALPHA_NUCLIDE'])}"],
+                    help="List of instruments to separate (default: \"Ru-106 Co-60 other\")")
+parser.add_argument('--cuda', action='store_true',
+                    help='Use CUDA (default: False)')
+parser.add_argument('--features', type=int, default=int(env['FEATURES']),
+                    help='Number of feature channels per layer')
+parser.add_argument('--load_model', type=str, default=None if env['LOAD_MODEL'] == 'None' else env['LOAD_MODEL'],
+                    help='Reload a previously trained model')
+parser.add_argument('--batch_size', type=int, default=int(env['BATCH_SIZE']),
+                    help="Batch size")
+parser.add_argument('--levels', type=int, default=6,
+                    help="Number of DS/US blocks")
+parser.add_argument('--depth', type=int, default=int(env['DEPTH']),
+                    help="Number of convs per block")
+parser.add_argument('--sr', type=int, default=int(env['SR']), help="Sampling rate")
+parser.add_argument('--channels', type=int, default=int(env['CHANNELS']), help="Number of input audio channels")
+parser.add_argument('--kernel_size', type=int, default=int(env['KERNEL_SIZE']),
+                    help="Filter width of kernels. Has to be an odd number")
+parser.add_argument('--output_size', type=float, default=float(env['OUTPUT_SIZE']),
+                    help="Output duration")
+parser.add_argument('--strides', type=int, default=int(env['STRIDES']),
+                    help="Strides in Waveunet")
+parser.add_argument('--conv_type', type=str, default=str(env['CONV_TYPE']),
+                    help="Type of convolution (normal, BN-normalised, GN-normalised): normal/bn/gn")
+parser.add_argument('--res', type=str, default=str(env['RES']),
+                    help="Resampling strategy: fixed sinc-based lowpass filtering or learned conv layer: fixed/learned")
+parser.add_argument('--separate', type=int, default=int(env['SEPARATE']),
+                    help="Train separate model for each source (1) or only one (0)")
+parser.add_argument('--feature_growth', type=str, default=str(env['FEATURE_GROWTH']),
+                    help="How the features in each layer should grow, either (add) the initial number of features each time, or multiply by 2 (double)")
+parser.add_argument('--output', type=str, default=None if env['OUTPUT'] == 'None' else env['OUTPUT'],
+                    help="Output path (same folder as input path if not set)")
+parser.add_argument('--num_workers', type=int, default=int(env['NUM_WORKERS']),
+                    help='Number of data loader worker threads (default: 1)')
+parser.add_argument('--log_dir', type=str, default=str(env['LOG_DIR']),
+                    help='Folder to write logs into')
+parser.add_argument('--dataset_dir', type=str, default=str(env['DATASET_DIR']),
+                    help='Dataset path')
+parser.add_argument('--hdf_dir', type=str, default=str(env['HDF_DIR']),
+                    help='Dataset path')
+parser.add_argument('--checkpoint_dir', type=str, default=str(env['CHECKPOINT_DIR']),
+                    help='Folder to write checkpoints into')
+parser.add_argument('--lr', type=float, default=float(env['LR']),
+                    help='Initial learning rate in LR cycle (default: 1e-3)')
+parser.add_argument('--min_lr', type=float, default=float(env['MIN_LR']),
+                    help='Minimum learning rate in LR cycle (default: 5e-5)')
+parser.add_argument('--cycles', type=int, default=int(env['CYCLES']),
+                    help='Number of LR cycles per epoch')
+parser.add_argument('--patience', type=int, default=int(env['PATIENCE']),
+                    help="Patience for early stopping on validation set")
+parser.add_argument('--example_freq', type=int, default=int(env['EXAMPLE_FREQ']),
+                    help="Write an audio summary into Tensorboard logs every X training iterations")
+parser.add_argument('--loss', type=str, default=str(env['LOSS']),
+                    help="L1 or L2")
+parser.add_argument('--save_audio_to_logs', type=bool, default=False,
+                    help="Whether to add output with audio samples from training to log in tensorboard (True) or (False)")
 
-    main(args)
-    print("done training")
+args = parser.parse_args()
+
+print(args)
+
+model = main(args)
+
+print("done training")
