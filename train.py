@@ -1,5 +1,6 @@
 import argparse
 import os
+import pickle
 import time
 from functools import partial
 
@@ -17,7 +18,7 @@ from data.dataset import SeparationDataset
 from data.musdb import get_musdb_folds
 from data.utils import crop_targets, random_amplify
 from model.waveunet import Waveunet
-from test import validate
+from test import validate, evaluate
 
 
 def main(args):
@@ -81,9 +82,11 @@ def main(args):
         state = model_utils.load_model(model, optimizer, args.load_model, args.cuda)
 
     print('TRAINING START')
+    n_down_sampling = 1
+    while state["worse_epochs"] < args.patience and state['epochs'] < args.epoch_n_max:
+        print(f"STARTING epoch '{state['epochs']}'")
+        print(f"Training one epoch from iteration {str(state['step'])}\n")
 
-    while state["worse_epochs"] < args.patience:
-        print("Training one epoch from iteration " + str(state["step"]))
         avg_time = 0.0
         model.train()
         with tqdm(total=len(train_data) // args.batch_size) as pbar:
@@ -107,25 +110,18 @@ def main(args):
 
                 optimizer.step()
 
-                state["step"] += 1
-
                 t = time.time() - t
                 avg_time += (1. / float(example_num + 1)) * (t - avg_time)
 
                 writer.add_scalar("train_loss", avg_loss, state["step"])
+                writer.add_scalar("avg_time", avg_time, state["step"])
 
-                if example_num % args.example_freq == 0 and args.save_audio_to_logs:
+                if example_num % args.example_freq == 0 and args.save_spectra_to_logs:
                     input_centre = torch.mean(
                         x[0, :, model.shapes["output_start_frame"]:model.shapes["output_end_frame"]],
                         0)  # Stereo not supported for logs yet
                     writer.add_audio("input", input_centre, state["step"], sample_rate=args.sr)
-
-                    for inst in outputs.keys():
-                        writer.add_audio(inst + "_pred", torch.mean(outputs[inst][0], 0), state["step"],
-                                         sample_rate=args.sr)
-                        writer.add_audio(inst + "_target", torch.mean(targets[inst][0], 0), state["step"],
-                                         sample_rate=args.sr)
-
+                state["step"] += 1
                 pbar.update(1)
 
         # VALIDATE
@@ -150,8 +146,6 @@ def main(args):
             state["best_loss"] = val_loss
             state["best_checkpoint"] = checkpoint_path
 
-        state["epochs"] += 1
-        n_down_sampling = 1
         if state["epochs"] % n_down_sampling == 0:
             try:
                 if os.path.exists(checkpoint_path_previous):
@@ -164,32 +158,35 @@ def main(args):
             print("Saving model...")
             model_utils.save_model(model, optimizer, state, checkpoint_path)
 
-    # #     #### TESTING ####
-    # #     # Test loss
-    # #     print("TESTING")
-    #
-    # #     # Load best model based on validation loss
-    # #     state = model_utils.load_model(model, None, state["best_checkpoint"], args.cuda)
-    # #     test_loss = validate(args, model, criterion, test_data)
-    # #     print("TEST FINISHED: LOSS: " + str(test_loss))
-    # #     writer.add_scalar("test_loss", test_loss, state["step"])
-    #
-    # #     # Mir_eval metrics
-    # #     test_metrics = evaluate(args, musdb["test"], model, args.instruments)
-    #
-    # #     # Dump all metrics results into pickle file for later analysis if needed
-    # #     with open(os.path.join(args.checkpoint_dir, "results.pkl"), "wb") as f:
-    # #         pickle.dump(test_metrics, f)
-    #
-    # #     # Write most important metrics into Tensorboard log
-    # #     avg_SDRs = {inst: np.mean([np.nanmean(song[inst]["SDR"]) for song in test_metrics]) for inst in args.instruments}
-    # #     avg_SIRs = {inst: np.mean([np.nanmean(song[inst]["SIR"]) for song in test_metrics]) for inst in args.instruments}
-    # #     for inst in args.instruments:
-    # #         writer.add_scalar("test_SDR_" + inst, avg_SDRs[inst], state["step"])
-    # #         writer.add_scalar("test_SIR_" + inst, avg_SIRs[inst], state["step"])
-    # #     overall_SDR = np.mean([v for v in avg_SDRs.values()])
-    # #     writer.add_scalar("test_SDR", overall_SDR)
-    # #     print("SDR: " + str(overall_SDR))
+        state["epochs"] += 1
+
+        # #### TESTING ####
+        # print("TESTING")
+        #
+        # # Load best model based on validation loss
+        # state = model_utils.load_model(model, None, state["best_checkpoint"], args.cuda)
+        # test_loss = validate(args, model, criterion, test_data)
+        # print("TEST FINISHED: LOSS: " + str(test_loss))
+        # writer.add_scalar("test_loss", test_loss, state["step"])
+        #
+        # # Mir_eval metrics
+        # test_metrics = evaluate(args, musdb["test"], model, args.instruments)
+        #
+        # # Dump all metrics results into pickle file for later analysis if needed
+        # with open(os.path.join(args.checkpoint_dir, "results.pkl"), "wb") as f:
+        #     pickle.dump(test_metrics, f)
+        #
+        # # Write most important metrics into Tensorboard log
+        # avg_SDRs = {inst: np.mean([np.nanmean(song[inst]["SDR"]) for song in test_metrics]) for inst in
+        #             args.instruments}
+        # avg_SIRs = {inst: np.mean([np.nanmean(song[inst]["SIR"]) for song in test_metrics]) for inst in
+        #             args.instruments}
+        # for inst in args.instruments:
+        #     writer.add_scalar("test_SDR_" + inst, avg_SDRs[inst], state["step"])
+        #     writer.add_scalar("test_SIR_" + inst, avg_SIRs[inst], state["step"])
+        # overall_SDR = np.mean([v for v in avg_SDRs.values()])
+        # writer.add_scalar("test_SDR", overall_SDR)
+        # print("SDR: " + str(overall_SDR))
 
     writer.close()
     return model
@@ -253,8 +250,11 @@ parser.add_argument('--example_freq', type=int, default=int(env['EXAMPLE_FREQ'])
                     help="Write an audio summary into Tensorboard logs every X training iterations")
 parser.add_argument('--loss', type=str, default=str(env['LOSS']),
                     help="L1 or L2")
-parser.add_argument('--save_audio_to_logs', type=bool, default=False,
+parser.add_argument('--save_spectra_to_logs', type=bool,
+                    default=True if str(env['SAVE_SPECTRA_TO_LOGS']) == 'True' else False,
                     help="Whether to add output with audio samples from training to log in tensorboard (True) or (False)")
+parser.add_argument('--epoch_n_max', type=int, default=int(env['EPOCH_N_MAX']),
+                    help="global max number of epochs to run")
 
 args = parser.parse_args()
 
